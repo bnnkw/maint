@@ -53,6 +53,7 @@ impl Default for WorkArgs {
     }
 }
 
+#[allow(dead_code)]
 struct Request {
     id: u32,
     contract_id: u32,
@@ -73,6 +74,7 @@ impl TryFrom<&rusqlite::Row<'_>> for Request {
     }
 }
 
+#[allow(dead_code)]
 struct Work {
     id: u32,
     request_id: u32,
@@ -145,6 +147,7 @@ fn work(conn: &Connection, args: &WorkArgs) -> Result<usize, rusqlite::Error> {
     )
 }
 
+#[allow(dead_code)]
 fn list_request(conn: &Connection) -> Result<Vec<Request>, rusqlite::Error> {
     let query = "select * from request";
     let mut stmt = conn.prepare(query)?;
@@ -157,6 +160,7 @@ fn list_request(conn: &Connection) -> Result<Vec<Request>, rusqlite::Error> {
     Ok(requests)
 }
 
+#[allow(dead_code)]
 fn list_work(conn: &Connection) -> Result<Vec<Work>, rusqlite::Error> {
     let query = "select * from work";
     let mut stmt = conn.prepare(query)?;
