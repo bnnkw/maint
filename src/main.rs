@@ -98,6 +98,19 @@ impl TryFrom<&rusqlite::Row<'_>> for Work {
 }
 
 fn main() {
+    let cli = Cli::parse();
+    let conn = init::<&str>(None).unwrap();
+
+    match &cli.command {
+        Command::Request(args) => match request(&conn, args) {
+            Ok(nrow) => println!("{} row inserted", nrow),
+            Err(e) => println!("Error inserting request: {}", e),
+        },
+        Command::Work(args) => match work(&conn, args) {
+            Ok(nrow) => println!("{} row inserted", nrow),
+            Err(e) => println!("Error inserting work: {}", e),
+        },
+    }
 }
 
 fn request(conn: &Connection, args: &RequestArgs) -> Result<usize, rusqlite::Error> {
