@@ -12,6 +12,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     Request(RequestArgs),
+    Work(WorkArgs),
 }
 
 #[derive(Args)]
@@ -27,6 +28,27 @@ impl Default for RequestArgs {
             contract_id: 0,
             description: None,
             request_date: Some(chrono::Utc::now().date_naive()),
+        }
+    }
+}
+
+#[derive(Args)]
+struct WorkArgs {
+    request_id: u32,
+    worker: String,
+    description: Option<String>,
+    points_used: u32,
+    work_date: Option<chrono::NaiveDate>,
+}
+
+impl Default for WorkArgs {
+    fn default() -> Self {
+        WorkArgs {
+            request_id: 0,
+            worker: "".to_string(),
+            description: None,
+            points_used: 0,
+            work_date: Some(chrono::Utc::now().date_naive()),
         }
     }
 }
@@ -51,8 +73,31 @@ impl TryFrom<&rusqlite::Row<'_>> for Request {
     }
 }
 
+struct Work {
+    id: u32,
+    request_id: u32,
+    worker: String,
+    description: String,
+    points_used: u32,
+    work_date: chrono::NaiveDate,
+}
+
+impl TryFrom<&rusqlite::Row<'_>> for Work {
+    type Error = rusqlite::Error;
+
+    fn try_from(value: &rusqlite::Row<'_>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.get(0)?,
+            request_id: value.get(1)?,
+            worker: value.get(2)?,
+            description: value.get(3)?,
+            points_used: value.get(4)?,
+            work_date: chrono::NaiveDate::from_str(value.get::<_, String>(5)?.as_str()).unwrap(),
+        })
+    }
+}
+
 fn main() {
-    println!("Hello, world!");
 }
 
 fn request(conn: &Connection, args: &RequestArgs) -> Result<usize, rusqlite::Error> {
@@ -70,6 +115,23 @@ fn request(conn: &Connection, args: &RequestArgs) -> Result<usize, rusqlite::Err
     )
 }
 
+fn work(conn: &Connection, args: &WorkArgs) -> Result<usize, rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO work (request_id, worker, description, points_used, work_date)
+            VALUES (:request_id, :worker, :description, :points_used, :work_date)",
+        &[
+            (":request_id", &args.request_id.to_string()),
+            (":worker", &args.worker),
+            (
+                ":description",
+                args.description.as_ref().unwrap_or(&"".to_string()),
+            ),
+            (":points_used", &args.points_used.to_string()),
+            (":work_date", &args.work_date.unwrap().to_string()),
+        ],
+    )
+}
+
 fn list_request(conn: &Connection) -> Result<Vec<Request>, rusqlite::Error> {
     let query = "select * from request";
     let mut stmt = conn.prepare(query)?;
@@ -80,6 +142,18 @@ fn list_request(conn: &Connection) -> Result<Vec<Request>, rusqlite::Error> {
     }
 
     Ok(requests)
+}
+
+fn list_work(conn: &Connection) -> Result<Vec<Work>, rusqlite::Error> {
+    let query = "select * from work";
+    let mut stmt = conn.prepare(query)?;
+    let rows = stmt.query_map([], |row| Work::try_from(row))?;
+    let mut work_entries = Vec::new();
+    for work_result in rows {
+        work_entries.push(work_result?);
+    }
+
+    Ok(work_entries)
 }
 
 fn init<P>(path: Option<P>) -> Result<Connection, rusqlite::Error>
@@ -150,5 +224,21 @@ mod tests {
         assert_eq!(0, request.contract_id);
         assert_eq!("", request.description);
         assert_eq!(chrono::Utc::now().date_naive(), request.request_date);
+    }
+
+    #[test]
+    fn test_work() {
+        let conn = init::<&str>(None).unwrap();
+        let args = WorkArgs::default();
+        let nrow = work(&conn, &args).unwrap();
+        assert_eq!(1, nrow);
+        let work_entries = list_work(&conn).unwrap();
+        let work_entry = &work_entries[0];
+        assert_eq!(1, work_entry.id);
+        assert_eq!(0, work_entry.request_id);
+        assert_eq!("", work_entry.worker);
+        assert_eq!("", work_entry.description);
+        assert_eq!(0, work_entry.points_used);
+        assert_eq!(chrono::Utc::now().date_naive(), work_entry.work_date);
     }
 }
