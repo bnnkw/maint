@@ -1,4 +1,4 @@
-use std::{env, path::Path, path::PathBuf, str::FromStr};
+use std::{env, path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 use edit::edit;
@@ -111,7 +111,14 @@ fn db() -> PathBuf {
 
 fn main() {
     let cli = Cli::parse();
-    let conn = init::<&str>(None).unwrap();
+    let db = db();
+    let conn = if !db.exists() {
+        let conn = Connection::open(&db).unwrap();
+        init(&conn).unwrap();
+        conn
+    } else {
+        Connection::open(db).unwrap()
+    };
 
     match &cli.command {
         Command::Request(args) => match request(&conn, args) {
@@ -185,14 +192,7 @@ fn list_work(conn: &Connection) -> Result<Vec<Work>, rusqlite::Error> {
     Ok(work_entries)
 }
 
-fn init<P>(path: Option<P>) -> Result<Connection, rusqlite::Error>
-where
-    P: AsRef<Path>,
-{
-    let conn = match path {
-        Some(p) => Connection::open(p),
-        None => Connection::open_in_memory(),
-    }?;
+fn init(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
         "
         CREATE TABLE IF NOT EXISTS customer (
@@ -225,7 +225,8 @@ where
         );
         ",
     )?;
-    Ok(conn)
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -234,7 +235,9 @@ mod tests {
 
     #[test]
     fn test_init() {
-        let conn = init::<&str>(None).unwrap();
+        let conn = Connection::open_in_memory()
+            .inspect(|c| init(c).unwrap())
+            .unwrap();
         assert!(conn.table_exists(Some("main"), "customer").unwrap());
         assert!(conn.table_exists(Some("main"), "contract").unwrap());
         assert!(conn.table_exists(Some("main"), "request").unwrap());
@@ -243,7 +246,9 @@ mod tests {
 
     #[test]
     fn test_request() {
-        let conn = init::<&str>(None).unwrap();
+        let conn = Connection::open_in_memory()
+            .inspect(|c| init(c).unwrap())
+            .unwrap();
         let args = RequestArgs {
             contract_id: 1,
             description: Some("desc".to_string()),
@@ -261,7 +266,9 @@ mod tests {
 
     #[test]
     fn test_work() {
-        let conn = init::<&str>(None).unwrap();
+        let conn = Connection::open_in_memory()
+            .inspect(|c| init(c).unwrap())
+            .unwrap();
         let args = WorkArgs {
             request_id: 1,
             worker: "worker".to_string(),
