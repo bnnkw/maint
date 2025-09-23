@@ -23,16 +23,6 @@ struct RequestArgs {
     request_date: Option<chrono::NaiveDate>,
 }
 
-impl Default for RequestArgs {
-    fn default() -> Self {
-        RequestArgs {
-            contract_id: 0,
-            description: None,
-            request_date: Some(chrono::Utc::now().date_naive()),
-        }
-    }
-}
-
 #[derive(Args)]
 struct WorkArgs {
     request_id: u32,
@@ -40,18 +30,6 @@ struct WorkArgs {
     description: Option<String>,
     points_used: u32,
     work_date: Option<chrono::NaiveDate>,
-}
-
-impl Default for WorkArgs {
-    fn default() -> Self {
-        WorkArgs {
-            request_id: 0,
-            worker: "".to_string(),
-            description: None,
-            points_used: 0,
-            work_date: Some(chrono::Utc::now().date_naive()),
-        }
-    }
 }
 
 #[allow(dead_code)]
@@ -240,30 +218,40 @@ mod tests {
     #[test]
     fn test_request() {
         let conn = init::<&str>(None).unwrap();
-        let args = RequestArgs::default();
+        let args = RequestArgs {
+            contract_id: 1,
+            description: Some("desc".to_string()),
+            request_date: Some(chrono::Utc::now().date_naive()),
+        };
         let nrow = request(&conn, &args).unwrap();
         assert_eq!(1, nrow);
         let requests = list_request(&conn).unwrap();
         let request = &requests[0];
         assert_eq!(1, request.id);
-        assert_eq!(0, request.contract_id);
-        assert_eq!("", request.description);
+        assert_eq!(1, request.contract_id);
+        assert_eq!("desc", request.description);
         assert_eq!(chrono::Utc::now().date_naive(), request.request_date);
     }
 
     #[test]
     fn test_work() {
         let conn = init::<&str>(None).unwrap();
-        let args = WorkArgs::default();
+        let args = WorkArgs {
+            request_id: 1,
+            worker: "worker".to_string(),
+            description: Some("desc".to_string()),
+            points_used: 1,
+            work_date: Some(chrono::Utc::now().date_naive()),
+        };
         let nrow = work(&conn, &args).unwrap();
         assert_eq!(1, nrow);
         let work_entries = list_work(&conn).unwrap();
         let work_entry = &work_entries[0];
         assert_eq!(1, work_entry.id);
-        assert_eq!(0, work_entry.request_id);
-        assert_eq!("", work_entry.worker);
-        assert_eq!("", work_entry.description);
-        assert_eq!(0, work_entry.points_used);
+        assert_eq!(1, work_entry.request_id);
+        assert_eq!("worker", work_entry.worker);
+        assert_eq!("desc", work_entry.description);
+        assert_eq!(1, work_entry.points_used);
         assert_eq!(chrono::Utc::now().date_naive(), work_entry.work_date);
     }
 }
