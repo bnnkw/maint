@@ -1,4 +1,4 @@
-use std::{path::Path, str::FromStr};
+use std::{env, path::Path, path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 use edit::edit;
@@ -96,6 +96,17 @@ impl TryFrom<&rusqlite::Row<'_>> for Work {
 fn get_editor_description(initial_text: &str) -> Result<String, Box<dyn std::error::Error>> {
     let edited_text = edit(initial_text.as_bytes())?;
     Ok(edited_text)
+}
+
+fn db() -> PathBuf {
+    let path = match env::var("MAINT_DB") {
+        Ok(value) => value,
+        Err(_) => match env::var("HOME") {
+            Ok(value) => format!("{}/.maint.db", value),
+            Err(_) => panic!("Failed to get home directory"),
+        },
+    };
+    PathBuf::from(path)
 }
 
 fn main() {
