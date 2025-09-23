@@ -19,17 +19,32 @@ enum Command {
 #[derive(Args)]
 struct RequestArgs {
     contract_id: u32,
+
+    #[arg(short, long)]
     description: Option<String>,
-    request_date: Option<chrono::NaiveDate>,
+
+    #[arg(default_value_t = today_utc())]
+    request_date: chrono::NaiveDate,
 }
 
 #[derive(Args)]
 struct WorkArgs {
     request_id: u32,
+
     worker: String,
+
+    #[arg(short, long)]
     description: Option<String>,
+
+    #[arg(default_value = "1")]
     points_used: u32,
-    work_date: Option<chrono::NaiveDate>,
+
+    #[arg(default_value_t = today_utc())]
+    work_date: chrono::NaiveDate,
+}
+
+fn today_utc() -> chrono::NaiveDate {
+    chrono::Utc::now().date_naive()
 }
 
 #[allow(dead_code)]
@@ -110,7 +125,7 @@ fn request(conn: &Connection, args: &RequestArgs) -> Result<usize, rusqlite::Err
         &[
             (":contract_id", &args.contract_id.to_string()),
             (":description", desc),
-            (":request_date", &args.request_date.unwrap().to_string()),
+            (":request_date", &args.request_date.to_string()),
         ],
     )
 }
@@ -128,7 +143,7 @@ fn work(conn: &Connection, args: &WorkArgs) -> Result<usize, rusqlite::Error> {
             (":worker", &args.worker),
             (":description", desc),
             (":points_used", &args.points_used.to_string()),
-            (":work_date", &args.work_date.unwrap().to_string()),
+            (":work_date", &args.work_date.to_string()),
         ],
     )
 }
@@ -221,7 +236,7 @@ mod tests {
         let args = RequestArgs {
             contract_id: 1,
             description: Some("desc".to_string()),
-            request_date: Some(chrono::Utc::now().date_naive()),
+            request_date: chrono::Utc::now().date_naive(),
         };
         let nrow = request(&conn, &args).unwrap();
         assert_eq!(1, nrow);
@@ -241,7 +256,7 @@ mod tests {
             worker: "worker".to_string(),
             description: Some("desc".to_string()),
             points_used: 1,
-            work_date: Some(chrono::Utc::now().date_naive()),
+            work_date: chrono::Utc::now().date_naive(),
         };
         let nrow = work(&conn, &args).unwrap();
         assert_eq!(1, nrow);
