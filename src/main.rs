@@ -120,7 +120,7 @@ fn main() {
         Connection::open(db).unwrap()
     };
 
-    match &cli.command {
+    match cli.command {
         Command::Request(args) => match request(&conn, args) {
             Ok(nrow) => println!("{} row inserted", nrow),
             Err(e) => println!("Error inserting request: {}", e),
@@ -132,40 +132,71 @@ fn main() {
     }
 }
 
-fn request(conn: &Connection, args: &RequestArgs) -> Result<usize, rusqlite::Error> {
-    let desc = match &args.description {
+fn request(conn: &Connection, args: RequestArgs) -> Result<usize, rusqlite::Error> {
+    let description = match args.description {
         Some(desc) => desc,
-        None => &get_editor_description("").expect("Failed to get description from editor"),
+        None => get_editor_description("").expect("Failed to get description from editor"),
     };
+    add_request(
+        conn,
+        &args.contract_id.to_string(),
+        &description,
+        &args.request_date.to_string(),
+    )
+}
+
+fn add_request(
+    conn: &Connection,
+    contract_id: &str,
+    description: &str,
+    request_date: &str,
+) -> Result<usize, rusqlite::Error> {
     conn.execute(
         "INSERT INTO request (contract_id, description, request_date)
             VALUES (:contract_id, :description, :request_date)",
         &[
-            (":contract_id", &args.contract_id.to_string()),
-            (":description", desc),
-            (":request_date", &args.request_date.to_string()),
+            (":contract_id", contract_id),
+            (":description", description),
+            (":request_date", request_date),
         ],
     )
 }
 
-fn work(conn: &Connection, args: &WorkArgs) -> Result<usize, rusqlite::Error> {
-    let desc = match &args.description {
+fn work(conn: &Connection, args: WorkArgs) -> Result<usize, rusqlite::Error> {
+    let description = match args.description {
         Some(desc) => desc,
-        None => &get_editor_description("").expect("Failed to get description from editor"),
+        None => get_editor_description("").expect("Failed to get description from editor"),
     };
+    add_work(
+        conn,
+        &args.request_id.to_string(),
+        &args.worker,
+        &description,
+        &args.points_used.to_string(),
+        &args.work_date.to_string(),
+    )
+}
+
+fn add_work(
+    conn: &Connection,
+    request_id: &str,
+    worker: &str,
+    description: &str,
+    points_used: &str,
+    work_date: &str,
+) -> Result<usize, rusqlite::Error> {
     conn.execute(
         "INSERT INTO work (request_id, worker, description, points_used, work_date)
             VALUES (:request_id, :worker, :description, :points_used, :work_date)",
         &[
-            (":request_id", &args.request_id.to_string()),
-            (":worker", &args.worker),
-            (":description", desc),
-            (":points_used", &args.points_used.to_string()),
-            (":work_date", &args.work_date.to_string()),
+            (":request_id", request_id),
+            (":worker", worker),
+            (":description", description),
+            (":points_used", points_used),
+            (":work_date", work_date),
         ],
     )
 }
-
 #[allow(dead_code)]
 fn list_request(conn: &Connection) -> Result<Vec<Request>, rusqlite::Error> {
     let query = "select * from request";
@@ -254,7 +285,7 @@ mod tests {
             description: Some("desc".to_string()),
             request_date: chrono::Utc::now().date_naive(),
         };
-        let nrow = request(&conn, &args).unwrap();
+        let nrow = request(&conn, args).unwrap();
         assert_eq!(1, nrow);
         let requests = list_request(&conn).unwrap();
         let request = &requests[0];
@@ -276,7 +307,7 @@ mod tests {
             points_used: 1,
             work_date: chrono::Utc::now().date_naive(),
         };
-        let nrow = work(&conn, &args).unwrap();
+        let nrow = work(&conn, args).unwrap();
         assert_eq!(1, nrow);
         let work_entries = list_work(&conn).unwrap();
         let work_entry = &work_entries[0];
