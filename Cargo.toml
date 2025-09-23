@@ -8,3 +8,4 @@ chrono = "0.4.42"
 clap = { version = "4.5.47", features = ["derive"] }
 rusqlite = "0.37.0"
 serde_yaml = "0.9.34"
+edit = "0.1.5"

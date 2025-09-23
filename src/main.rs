@@ -1,6 +1,7 @@
 use std::{path::Path, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
+use edit::edit;
 use rusqlite::Connection;
 
 #[derive(Parser)]
@@ -99,6 +100,11 @@ impl TryFrom<&rusqlite::Row<'_>> for Work {
     }
 }
 
+fn get_editor_description(initial_text: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let edited_text = edit(initial_text.as_bytes())?;
+    Ok(edited_text)
+}
+
 fn main() {
     let cli = Cli::parse();
     let conn = init::<&str>(None).unwrap();
@@ -116,31 +122,33 @@ fn main() {
 }
 
 fn request(conn: &Connection, args: &RequestArgs) -> Result<usize, rusqlite::Error> {
+    let desc = match &args.description {
+        Some(desc) => desc,
+        None => &get_editor_description("").expect("Failed to get description from editor"),
+    };
     conn.execute(
         "INSERT INTO request (contract_id, description, request_date)
             VALUES (:contract_id, :description, :request_date)",
         &[
             (":contract_id", &args.contract_id.to_string()),
-            (
-                ":description",
-                args.description.as_ref().unwrap_or(&"".to_string()),
-            ),
+            (":description", desc),
             (":request_date", &args.request_date.unwrap().to_string()),
         ],
     )
 }
 
 fn work(conn: &Connection, args: &WorkArgs) -> Result<usize, rusqlite::Error> {
+    let desc = match &args.description {
+        Some(desc) => desc,
+        None => &get_editor_description("").expect("Failed to get description from editor"),
+    };
     conn.execute(
         "INSERT INTO work (request_id, worker, description, points_used, work_date)
             VALUES (:request_id, :worker, :description, :points_used, :work_date)",
         &[
             (":request_id", &args.request_id.to_string()),
             (":worker", &args.worker),
-            (
-                ":description",
-                args.description.as_ref().unwrap_or(&"".to_string()),
-            ),
+            (":description", desc),
             (":points_used", &args.points_used.to_string()),
             (":work_date", &args.work_date.unwrap().to_string()),
         ],
