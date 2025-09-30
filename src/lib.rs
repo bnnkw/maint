@@ -89,12 +89,23 @@ impl TryFrom<&rusqlite::Row<'_>> for Work {
     }
 }
 
+#[derive(Debug)]
+pub enum Error {
+    RusqliteError(rusqlite::Error),
+}
+
+impl From<rusqlite::Error> for Error {
+    fn from(value: rusqlite::Error) -> Self {
+        Self::RusqliteError(value)
+    }
+}
+
 pub struct DataStore {
     conn: Connection,
 }
 
 impl DataStore {
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, rusqlite::Error> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         let is_new_db = !path.as_ref().exists();
         let conn = Connection::open(path)?;
 
@@ -105,11 +116,13 @@ impl DataStore {
         Ok(DataStore { conn })
     }
 
-    pub fn add_customer(&self, name: &str) -> Result<usize, rusqlite::Error> {
-        self.conn.execute(
+    pub fn add_customer(&self, name: &str) -> Result<usize, Error> {
+        let rows = self.conn.execute(
             "INSERT INTO customer (name) VALUES (:name)",
             &[(":name", name)],
-        )
+        )?;
+
+        Ok(rows)
     }
 
     pub fn add_contract(
@@ -118,8 +131,8 @@ impl DataStore {
         start_date: &str,
         end_date: &str,
         total_points: &str,
-    ) -> Result<usize, rusqlite::Error> {
-        self.conn.execute(
+    ) -> Result<usize, Error> {
+        let rows = self.conn.execute(
             "INSERT INTO contract (customer_id, start_date, end_date, total_points)
                 VALUES (:customer_id, :start_date, :end_date, :total_points)",
             &[
@@ -128,7 +141,9 @@ impl DataStore {
                 (":end_date", end_date),
                 (":total_points", total_points),
             ],
-        )
+        )?;
+
+        Ok(rows)
     }
 
     pub fn add_request(
@@ -136,8 +151,8 @@ impl DataStore {
         contract_id: &str,
         description: &str,
         request_date: &str,
-    ) -> Result<usize, rusqlite::Error> {
-        self.conn.execute(
+    ) -> Result<usize, Error> {
+        let rows = self.conn.execute(
             "INSERT INTO request (contract_id, description, request_date)
                 VALUES (:contract_id, :description, :request_date)",
             &[
@@ -145,7 +160,9 @@ impl DataStore {
                 (":description", description),
                 (":request_date", request_date),
             ],
-        )
+        )?;
+
+        Ok(rows)
     }
 
     pub fn add_work(
@@ -155,8 +172,8 @@ impl DataStore {
         description: &str,
         points_used: &str,
         work_date: &str,
-    ) -> Result<usize, rusqlite::Error> {
-        self.conn.execute(
+    ) -> Result<usize, Error> {
+        let rows = self.conn.execute(
             "INSERT INTO work (request_id, worker, description, points_used, work_date)
                 VALUES (:request_id, :worker, :description, :points_used, :work_date)",
             &[
@@ -166,10 +183,12 @@ impl DataStore {
                 (":points_used", points_used),
                 (":work_date", work_date),
             ],
-        )
+        )?;
+
+        Ok(rows)
     }
 
-    fn init(conn: &Connection) -> Result<(), rusqlite::Error> {
+    fn init(conn: &Connection) -> Result<(), Error> {
         conn.execute_batch(
             "
             CREATE TABLE IF NOT EXISTS customer (

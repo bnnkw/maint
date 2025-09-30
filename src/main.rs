@@ -78,7 +78,7 @@ fn db_path() -> PathBuf {
     PathBuf::from(path)
 }
 
-fn main() -> Result<ExitCode, rusqlite::Error> {
+fn main() -> Result<ExitCode, maint::Error> {
     let cli = Cli::parse();
     let db_path = db_path();
     let ds = DataStore::open(db_path).unwrap();
@@ -93,11 +93,11 @@ fn main() -> Result<ExitCode, rusqlite::Error> {
     Ok(ExitCode::SUCCESS)
 }
 
-fn customer(ds: &DataStore, args: CustomerArgs) -> Result<usize, rusqlite::Error> {
+fn customer(ds: &DataStore, args: CustomerArgs) -> Result<usize, maint::Error> {
     ds.add_customer(&args.name)
 }
 
-fn contract(ds: &DataStore, args: ContractArgs) -> Result<usize, rusqlite::Error> {
+fn contract(ds: &DataStore, args: ContractArgs) -> Result<usize, maint::Error> {
     ds.add_contract(
         &args.customer_id.to_string(),
         &args.start_date.to_string(),
@@ -106,7 +106,7 @@ fn contract(ds: &DataStore, args: ContractArgs) -> Result<usize, rusqlite::Error
     )
 }
 
-fn request(ds: &DataStore, args: RequestArgs) -> Result<usize, rusqlite::Error> {
+fn request(ds: &DataStore, args: RequestArgs) -> Result<usize, maint::Error> {
     let description = match args.description {
         Some(desc) => desc,
         None => get_editor_description("").expect("Failed to get description from editor"),
@@ -118,7 +118,7 @@ fn request(ds: &DataStore, args: RequestArgs) -> Result<usize, rusqlite::Error> 
     )
 }
 
-fn work(ds: &DataStore, args: WorkArgs) -> Result<usize, rusqlite::Error> {
+fn work(ds: &DataStore, args: WorkArgs) -> Result<usize, maint::Error> {
     let description = match args.description {
         Some(desc) => desc,
         None => get_editor_description("").expect("Failed to get description from editor"),
