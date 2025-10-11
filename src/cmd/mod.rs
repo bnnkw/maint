@@ -1,0 +1,80 @@
+use clap::{Args, Parser, Subcommand};
+
+mod add;
+mod edit;
+mod list;
+mod rm;
+mod show;
+
+#[derive(Parser)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+impl Cli {
+    pub fn run(&self) -> Result<(), maint::Error> {
+        unimplemented!();
+    }
+}
+
+#[derive(Subcommand)]
+pub enum Command {
+    Add(add::Cmd),
+    Rm(rm::Cmd),
+    List(list::Cmd),
+    Show(show::Cmd),
+    Edit(edit::Cmd),
+}
+
+#[derive(Subcommand)]
+enum Target {
+    Customer(CustomerArgs),
+    Contract(ContractArgs),
+    Request(RequestArgs),
+    Work(WorkArgs),
+}
+
+#[derive(Args)]
+struct CustomerArgs {
+    name: String,
+}
+
+#[derive(Args)]
+struct ContractArgs {
+    customer_id: u32,
+    start_date: chrono::NaiveDate,
+    end_date: chrono::NaiveDate,
+    total_points: u32,
+}
+
+#[derive(Args)]
+struct RequestArgs {
+    contract_id: u32,
+
+    #[arg(short, long)]
+    description: Option<String>,
+
+    #[arg(default_value_t = today_utc())]
+    request_date: chrono::NaiveDate,
+}
+
+#[derive(Args)]
+struct WorkArgs {
+    request_id: u32,
+
+    worker: String,
+
+    #[arg(short, long)]
+    description: Option<String>,
+
+    #[arg(default_value = "1")]
+    points_used: u32,
+
+    #[arg(default_value_t = today_utc())]
+    work_date: chrono::NaiveDate,
+}
+
+fn today_utc() -> chrono::NaiveDate {
+    chrono::Utc::now().date_naive()
+}
