@@ -23,12 +23,12 @@ fn db_path() -> PathBuf {
     PathBuf::from(path)
 }
 
-fn main() -> Result<ExitCode, maint::Error> {
+fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let db_path = db_path();
     let ds = DataStore::open(db_path).unwrap();
 
     let cli = Cli::parse();
-    cli.run()?;
+    cli.run(&ds)?;
 
     Ok(ExitCode::SUCCESS)
 }

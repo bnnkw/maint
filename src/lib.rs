@@ -1,39 +1,40 @@
+use std::fmt;
 use std::path::Path;
 use std::str::FromStr;
 
 use rusqlite::Connection;
 
-#[allow(dead_code)]
-struct Customer {
-    id: u32,
-    name: String,
+#[derive(Debug)]
+pub struct Customer {
+    pub id: u32,
+    pub name: String,
 }
 
-#[allow(dead_code)]
-struct Contract {
-    id: u32,
-    customer_id: u32,
-    start_date: chrono::NaiveDate,
-    end_date: chrono::NaiveDate,
-    total_points: u32,
+#[derive(Debug)]
+pub struct Contract {
+    pub id: u32,
+    pub customer_id: u32,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub total_points: u32,
 }
 
-#[allow(dead_code)]
-struct Request {
-    id: u32,
-    contract_id: u32,
-    description: String,
-    request_date: chrono::NaiveDate,
+#[derive(Debug)]
+pub struct Request {
+    pub id: u32,
+    pub contract_id: u32,
+    pub description: String,
+    pub request_date: chrono::NaiveDate,
 }
 
-#[allow(dead_code)]
-struct Work {
-    id: u32,
-    request_id: u32,
-    worker: String,
-    description: String,
-    points_used: u32,
-    work_date: chrono::NaiveDate,
+#[derive(Debug)]
+pub struct Work {
+    pub id: u32,
+    pub request_id: u32,
+    pub worker: String,
+    pub description: String,
+    pub points_used: u32,
+    pub work_date: chrono::NaiveDate,
 }
 
 impl TryFrom<&rusqlite::Row<'_>> for Customer {
@@ -97,6 +98,13 @@ pub enum Error {
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
         Self::RusqliteError(value)
+    }
+}
+
+impl std::error::Error for Error {}
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{:?}", self)
     }
 }
 
@@ -225,8 +233,7 @@ impl DataStore {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    fn list_customer(&self) -> Result<Vec<Customer>, rusqlite::Error> {
+    pub fn list_customer(&self) -> Result<Vec<Customer>, rusqlite::Error> {
         let query = "select * from customer";
         let mut stmt = self.conn.prepare(query)?;
         let rows = stmt.query_map([], |row| Customer::try_from(row))?;
@@ -238,8 +245,7 @@ impl DataStore {
         Ok(customers)
     }
 
-    #[allow(dead_code)]
-    fn list_contract(&self) -> Result<Vec<Contract>, rusqlite::Error> {
+    pub fn list_contract(&self) -> Result<Vec<Contract>, rusqlite::Error> {
         let query = "select * from contract";
         let mut stmt = self.conn.prepare(query)?;
         let rows = stmt.query_map([], |row| Contract::try_from(row))?;
@@ -251,8 +257,7 @@ impl DataStore {
         Ok(contracts)
     }
 
-    #[allow(dead_code)]
-    fn list_request(&self) -> Result<Vec<Request>, rusqlite::Error> {
+    pub fn list_request(&self) -> Result<Vec<Request>, rusqlite::Error> {
         let query = "select * from request";
         let mut stmt = self.conn.prepare(query)?;
         let rows = stmt.query_map([], |row| Request::try_from(row))?;
@@ -264,8 +269,7 @@ impl DataStore {
         Ok(requests)
     }
 
-    #[allow(dead_code)]
-    fn list_work(&self) -> Result<Vec<Work>, rusqlite::Error> {
+    pub fn list_work(&self) -> Result<Vec<Work>, rusqlite::Error> {
         let query = "select * from work";
         let mut stmt = self.conn.prepare(query)?;
         let rows = stmt.query_map([], |row| Work::try_from(row))?;

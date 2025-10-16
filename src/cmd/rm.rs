@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use maint::DataStore;
 
 #[derive(Parser)]
 pub struct Cmd {
@@ -37,4 +38,15 @@ pub struct Work {
     /// ID of the work to remove
     #[arg(long)]
     pub id: u32,
+}
+
+impl Cmd {
+    pub fn run(&self, _ds: &DataStore) -> Result<(), Box<dyn std::error::Error>> {
+        match &self.arg {
+            Arg::Customer(_arg) => todo!(),
+            Arg::Contract(_arg) => todo!(),
+            Arg::Request(_arg) => todo!(),
+            Arg::Work(_arg) => todo!(),
+        }
+    }
 }

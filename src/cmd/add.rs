@@ -1,4 +1,7 @@
 use clap::{Args, Parser, Subcommand};
+use maint::DataStore;
+
+use crate::cmd::today_utc;
 
 #[derive(Parser)]
 pub struct Cmd {
@@ -33,7 +36,11 @@ struct Contract {
 
     /// Start date of the contract (e.g., YYYY-MM-DD)
     #[arg(long)]
-    pub start_date: String,
+    start_date: chrono::NaiveDate,
+
+    /// End date of the contract (e.g., YYYY-MM-DD)
+    #[arg(long)]
+    end_date: chrono::NaiveDate,
 
     /// Monthly amount for the contract
     #[arg(long)]
@@ -49,6 +56,9 @@ struct Request {
     /// Detailed description of the request
     #[arg(long)]
     pub description: Option<String>,
+
+    #[arg(default_value_t = today_utc())]
+    request_date: chrono::NaiveDate,
 }
 
 #[derive(Args)]
@@ -57,18 +67,51 @@ struct Work {
     #[arg(long)]
     pub request_id: u32,
 
+    worker: String,
+
     /// Detailed description of the work performed
     #[arg(long)]
     pub description: Option<String>,
+
+    #[arg(default_value = "1")]
+    points_used: u32,
+
+    #[arg(default_value_t = today_utc())]
+    work_date: chrono::NaiveDate,
 }
 
 impl Cmd {
-    pub fn run(&self) {
+    pub fn run(&self, ds: &DataStore) -> Result<(), Box<dyn std::error::Error>> {
         match &self.arg {
-            Arg::Customer(customer) => todo!(),
-            Arg::Contract(contract) => todo!(),
-            Arg::Request(request) => todo!(),
-            Arg::Work(work) => todo!(),
-        }
+            Arg::Customer(arg) => ds.add_customer(&arg.name)?,
+            Arg::Contract(arg) => ds.add_contract(
+                arg.customer_id.to_string().as_str(),
+                &arg.start_date.to_string(),
+                &arg.start_date.to_string(),
+                arg.amount.to_string().as_str(),
+            )?,
+            Arg::Request(arg) => {
+                let description = match arg.description {
+                    Some(ref description) => description,
+                    None => &crate::get_editor_description("")?,
+                };
+                ds.add_request(&arg.contract_id.to_string(), description, "")?
+            }
+            Arg::Work(arg) => {
+                let description = match arg.description {
+                    Some(ref description) => description,
+                    None => &crate::get_editor_description("")?,
+                };
+                ds.add_work(
+                    &arg.request_id.to_string(),
+                    &arg.worker,
+                    description,
+                    &arg.points_used.to_string(),
+                    &arg.work_date.to_string(),
+                )?
+            }
+        };
+
+        Ok(())
     }
 }

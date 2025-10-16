@@ -13,8 +13,16 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn run(&self) -> Result<(), maint::Error> {
-        unimplemented!();
+    pub fn run(&self, ds: &maint::DataStore) -> Result<(), Box<dyn std::error::Error>> {
+        match &self.command {
+            Command::Add(cmd) => cmd.run(ds),
+            Command::Rm(cmd) => cmd.run(ds),
+            Command::List(cmd) => cmd.run(ds),
+            Command::Show(cmd) => cmd.run(ds),
+            Command::Edit(cmd) => cmd.run(ds),
+        }?;
+
+        Ok(())
     }
 }
 
@@ -25,14 +33,6 @@ pub enum Command {
     List(list::Cmd),
     Show(show::Cmd),
     Edit(edit::Cmd),
-}
-
-#[derive(Subcommand)]
-enum Target {
-    Customer(CustomerArgs),
-    Contract(ContractArgs),
-    Request(RequestArgs),
-    Work(WorkArgs),
 }
 
 #[derive(Args)]
