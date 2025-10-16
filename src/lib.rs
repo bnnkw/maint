@@ -281,6 +281,34 @@ impl DataStore {
 
         Ok(work_entries)
     }
+
+    pub fn get_customer(&self, id: u32) -> Result<Customer, rusqlite::Error> {
+        self.conn
+            .query_one("select * from customer where id = :id", [id], |r| {
+                Customer::try_from(r)
+            })
+    }
+
+    pub fn get_contract(&self, id: u32) -> Result<Contract, rusqlite::Error> {
+        self.conn
+            .query_one("select * from contract where id = :id", [id], |r| {
+                Contract::try_from(r)
+            })
+    }
+
+    pub fn get_request(&self, id: u32) -> Result<Request, rusqlite::Error> {
+        self.conn
+            .query_one("select * from request where id = :id", [id], |r| {
+                Request::try_from(r)
+            })
+    }
+
+    pub fn get_work(&self, id: u32) -> Result<Work, rusqlite::Error> {
+        self.conn
+            .query_one("select * from work where id = :id", [id], |r| {
+                Work::try_from(r)
+            })
+    }
 }
 
 #[cfg(test)]

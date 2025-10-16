@@ -40,12 +40,14 @@ pub struct Work {
     pub id: u32,
 }
 impl Cmd {
-    pub fn run(&self, _ds: &DataStore) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn run(&self, ds: &DataStore) -> Result<(), Box<dyn std::error::Error>> {
         match &self.arg {
-            Arg::Customer(_arg) => todo!(),
-            Arg::Contract(_arg) => todo!(),
-            Arg::Request(_arg) => todo!(),
-            Arg::Work(_arg) => todo!(),
-        }
+            Arg::Customer(arg) => println!("{:?}", ds.get_customer(arg.id)?),
+            Arg::Contract(arg) => println!("{:?}", ds.get_contract(arg.id)?),
+            Arg::Request(arg) => println!("{:?}", ds.get_request(arg.id)?),
+            Arg::Work(arg) => println!("{:?}", ds.get_work(arg.id)?),
+        };
+
+        Ok(())
     }
 }
