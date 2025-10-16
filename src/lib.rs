@@ -4,15 +4,18 @@ use std::str::FromStr;
 
 use chrono::NaiveDate;
 use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Customer {
+    #[serde(skip)]
     pub id: u32,
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Contract {
+    #[serde(skip)]
     pub id: u32,
     pub customer_id: u32,
     pub start_date: chrono::NaiveDate,
@@ -20,16 +23,18 @@ pub struct Contract {
     pub total_points: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
+    #[serde(skip)]
     pub id: u32,
     pub contract_id: u32,
     pub description: String,
     pub request_date: chrono::NaiveDate,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Work {
+    #[serde(skip)]
     pub id: u32,
     pub request_id: u32,
     pub worker: String,
@@ -88,6 +93,62 @@ impl TryFrom<&rusqlite::Row<'_>> for Work {
             points_used: value.get(4)?,
             work_date: chrono::NaiveDate::from_str(value.get::<_, String>(5)?.as_str()).unwrap(),
         })
+    }
+}
+
+impl fmt::Display for Customer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(self).unwrap())
+    }
+}
+
+impl fmt::Display for Contract {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(self).unwrap())
+    }
+}
+
+impl fmt::Display for Request {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(self).unwrap())
+    }
+}
+
+impl fmt::Display for Work {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(self).unwrap())
+    }
+}
+
+impl FromStr for Customer {
+    type Err = serde_yaml::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_yaml::from_str(s)
+    }
+}
+
+impl FromStr for Contract {
+    type Err = serde_yaml::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_yaml::from_str(s)
+    }
+}
+
+impl FromStr for Request {
+    type Err = serde_yaml::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_yaml::from_str(s)
+    }
+}
+
+impl FromStr for Work {
+    type Err = serde_yaml::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_yaml::from_str(s)
     }
 }
 
@@ -308,6 +369,78 @@ impl DataStore {
             .query_one("select * from work where id = :id", [id], |r| {
                 Work::try_from(r)
             })
+    }
+
+    pub fn save_customer(&self, entity: Customer) -> Result<usize, rusqlite::Error> {
+        let rows = self.conn.execute(
+            "UPDATE customer SET name = :name WHERE id = :id",
+            &[(":name", &entity.name), (":id", &entity.id.to_string())],
+        )?;
+
+        Ok(rows)
+    }
+
+    pub fn save_contract(&self, entity: Contract) -> Result<usize, rusqlite::Error> {
+        let rows = self.conn.execute(
+            "UPDATE contract SET
+                customer_id = :customer_id,
+                start_date = :start_date,
+                end_date = :end_date,
+                total_points = :total_points
+            WHERE
+                id = :id",
+            &[
+                (":customer_id", &entity.customer_id.to_string()),
+                (":start_date", &entity.start_date.to_string()),
+                (":end_date", &entity.end_date.to_string()),
+                (":total_points", &entity.total_points.to_string()),
+                (":id", &entity.id.to_string()),
+            ],
+        )?;
+
+        Ok(rows)
+    }
+
+    pub fn save_request(&self, entity: Request) -> Result<usize, rusqlite::Error> {
+        let rows = self.conn.execute(
+            "UPDATE request SET
+                contract_id = :contract_id,
+                description = :description,
+                request_date = :request_date
+            WHERE
+                id = :id",
+            &[
+                (":contract_id", &entity.contract_id.to_string()),
+                (":description", &entity.description),
+                (":request_date", &entity.request_date.to_string()),
+                (":id", &entity.id.to_string()),
+            ],
+        )?;
+
+        Ok(rows)
+    }
+
+    pub fn save_work(&self, entity: Work) -> Result<usize, rusqlite::Error> {
+        let rows = self.conn.execute(
+            "UPDATE work SET
+                request_id = :request_id,
+                worker = :worker,
+                description = :description,
+                points_used = :points_used,
+                work_date = :work_date
+            WHERE
+                id = :id",
+            &[
+                (":request_id", &entity.request_id.to_string()),
+                (":worker", &entity.worker),
+                (":description", &entity.description),
+                (":points_used", &entity.points_used.to_string()),
+                (":work_date", &entity.work_date.to_string()),
+                (":id", &entity.id.to_string()),
+            ],
+        )?;
+
+        Ok(rows)
     }
 }
 
