@@ -85,17 +85,17 @@ impl Cmd {
         match &self.arg {
             Arg::Customer(arg) => ds.add_customer(&arg.name)?,
             Arg::Contract(arg) => ds.add_contract(
-                arg.customer_id.to_string().as_str(),
-                &arg.start_date.to_string(),
-                &arg.start_date.to_string(),
-                arg.amount.to_string().as_str(),
+                arg.customer_id,
+                &arg.start_date,
+                &arg.start_date,
+                arg.amount,
             )?,
             Arg::Request(arg) => {
                 let description = match arg.description {
                     Some(ref description) => description,
                     None => &crate::get_editor_description("")?,
                 };
-                ds.add_request(&arg.contract_id.to_string(), description, "")?
+                ds.add_request(arg.contract_id, description, &arg.request_date)?
             }
             Arg::Work(arg) => {
                 let description = match arg.description {
@@ -103,11 +103,11 @@ impl Cmd {
                     None => &crate::get_editor_description("")?,
                 };
                 ds.add_work(
-                    &arg.request_id.to_string(),
+                    arg.request_id,
                     &arg.worker,
                     description,
-                    &arg.points_used.to_string(),
-                    &arg.work_date.to_string(),
+                    arg.points_used,
+                    &arg.work_date,
                 )?
             }
         };

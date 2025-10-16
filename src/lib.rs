@@ -2,6 +2,7 @@ use std::fmt;
 use std::path::Path;
 use std::str::FromStr;
 
+use chrono::NaiveDate;
 use rusqlite::Connection;
 
 #[derive(Debug)]
@@ -135,19 +136,19 @@ impl DataStore {
 
     pub fn add_contract(
         &self,
-        customer_id: &str,
-        start_date: &str,
-        end_date: &str,
-        total_points: &str,
+        customer_id: u32,
+        start_date: &NaiveDate,
+        end_date: &NaiveDate,
+        total_points: u32,
     ) -> Result<usize, Error> {
         let rows = self.conn.execute(
             "INSERT INTO contract (customer_id, start_date, end_date, total_points)
                 VALUES (:customer_id, :start_date, :end_date, :total_points)",
             &[
-                (":customer_id", customer_id),
-                (":start_date", start_date),
-                (":end_date", end_date),
-                (":total_points", total_points),
+                (":customer_id", &customer_id.to_string()),
+                (":start_date", &start_date.to_string()),
+                (":end_date", &end_date.to_string()),
+                (":total_points", &total_points.to_string()),
             ],
         )?;
 
@@ -156,17 +157,17 @@ impl DataStore {
 
     pub fn add_request(
         &self,
-        contract_id: &str,
+        contract_id: u32,
         description: &str,
-        request_date: &str,
+        request_date: &NaiveDate,
     ) -> Result<usize, Error> {
         let rows = self.conn.execute(
             "INSERT INTO request (contract_id, description, request_date)
                 VALUES (:contract_id, :description, :request_date)",
             &[
-                (":contract_id", contract_id),
+                (":contract_id", contract_id.to_string().as_str()),
                 (":description", description),
-                (":request_date", request_date),
+                (":request_date", request_date.to_string().as_str()),
             ],
         )?;
 
@@ -175,21 +176,21 @@ impl DataStore {
 
     pub fn add_work(
         &self,
-        request_id: &str,
+        request_id: u32,
         worker: &str,
         description: &str,
-        points_used: &str,
-        work_date: &str,
+        points_used: u32,
+        work_date: &NaiveDate,
     ) -> Result<usize, Error> {
         let rows = self.conn.execute(
             "INSERT INTO work (request_id, worker, description, points_used, work_date)
                 VALUES (:request_id, :worker, :description, :points_used, :work_date)",
             &[
-                (":request_id", request_id),
+                (":request_id", request_id.to_string().as_str()),
                 (":worker", worker),
                 (":description", description),
-                (":points_used", points_used),
-                (":work_date", work_date),
+                (":points_used", points_used.to_string().as_str()),
+                (":work_date", work_date.to_string().as_str()),
             ],
         )?;
 
@@ -316,7 +317,12 @@ mod tests {
     fn test_contract() {
         let ds = in_memory_datastore();
         let nrow = ds
-            .add_contract("1", "2025-01-01", "2025-12-31", "10")
+            .add_contract(
+                1,
+                &"2025-01-01".parse().unwrap(),
+                &"2025-12-31".parse().unwrap(),
+                10,
+            )
             .unwrap();
         assert_eq!(1, nrow);
         let contracts = ds.list_contract().unwrap();
@@ -337,7 +343,9 @@ mod tests {
     #[test]
     fn test_request() {
         let ds = in_memory_datastore();
-        let nrow = ds.add_request("1", "desc", "2025-01-01").unwrap();
+        let nrow = ds
+            .add_request(1, "desc", &"2025-01-01".parse().unwrap())
+            .unwrap();
         assert_eq!(1, nrow);
         let requests = ds.list_request().unwrap();
         let request = &requests[0];
@@ -354,7 +362,7 @@ mod tests {
     fn test_work() {
         let ds = in_memory_datastore();
         let nrow = ds
-            .add_work("1", "worker", "desc", "1", "2025-01-01")
+            .add_work(1, "worker", "desc", 1, &"2025-01-01".parse().unwrap())
             .unwrap();
         assert_eq!(1, nrow);
         let work_entries = ds.list_work().unwrap();
