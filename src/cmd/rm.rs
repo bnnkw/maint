@@ -18,25 +18,24 @@ pub enum Arg {
 #[derive(Args)]
 pub struct Customer {
     /// ID of the customer to remove
-    #[arg(long)]
     pub id: u32,
 }
+
 #[derive(Args)]
 pub struct Contract {
     /// ID of the contract to remove
-    #[arg(long)]
     pub id: u32,
 }
+
 #[derive(Args)]
 pub struct Request {
     /// ID of the request to remove
-    #[arg(long)]
     pub id: u32,
 }
+
 #[derive(Args)]
 pub struct Work {
     /// ID of the work to remove
-    #[arg(long)]
     pub id: u32,
 }
 

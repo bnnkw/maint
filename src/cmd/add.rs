@@ -31,7 +31,6 @@ struct Customer {
 #[derive(Args)]
 struct Contract {
     /// ID of the customer for this contract
-    #[arg(long)]
     pub customer_id: u32,
 
     /// Start date of the contract (e.g., YYYY-MM-DD)
@@ -42,15 +41,14 @@ struct Contract {
     #[arg(long)]
     end_date: chrono::NaiveDate,
 
-    /// Monthly amount for the contract
+    /// Total points for the contract
     #[arg(long)]
-    pub amount: u32,
+    pub total_points: u32,
 }
 
 #[derive(Args)]
 struct Request {
     /// ID of the contract for this request
-    #[arg(long)]
     pub contract_id: u32,
 
     /// Detailed description of the request
@@ -64,7 +62,6 @@ struct Request {
 #[derive(Args)]
 struct Work {
     /// ID of the request for this work
-    #[arg(long)]
     pub request_id: u32,
 
     worker: String,
@@ -88,7 +85,7 @@ impl Cmd {
                 arg.customer_id,
                 &arg.start_date,
                 &arg.start_date,
-                arg.amount,
+                arg.total_points,
             )?,
             Arg::Request(arg) => {
                 let description = match arg.description {

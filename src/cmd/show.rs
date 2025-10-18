@@ -18,30 +18,30 @@ pub enum Arg {
 #[derive(Args)]
 pub struct Customer {
     /// ID of the customer to show
-    #[arg(long)]
     pub id: u32,
 }
+
 #[derive(Args)]
 pub struct Contract {
     /// ID of the contract to show
-    #[arg(long)]
     pub id: u32,
 
-    #[arg(long)]
+    #[arg(short, long)]
     usage: bool,
 }
+
 #[derive(Args)]
 pub struct Request {
     /// ID of the request to show
-    #[arg(long)]
     pub id: u32,
 }
+
 #[derive(Args)]
 pub struct Work {
     /// ID of the work to show
-    #[arg(long)]
     pub id: u32,
 }
+
 impl Cmd {
     pub fn run(&self, ds: &DataStore) -> Result<(), Box<dyn std::error::Error>> {
         match &self.arg {
