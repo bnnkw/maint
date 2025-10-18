@@ -43,6 +43,53 @@ pub struct Work {
     pub work_date: chrono::NaiveDate,
 }
 
+#[derive(Debug, Serialize)]
+pub struct CumulativeUsage {
+    pub request_date: NaiveDate,
+    pub request_description: String,
+    pub worker: String,
+    pub work_date: NaiveDate,
+    pub work_description: String,
+    pub points_used: u32,
+    pub cumulative_points_used: u32,
+}
+
+impl TryFrom<&rusqlite::Row<'_>> for CumulativeUsage {
+    type Error = rusqlite::Error;
+
+    fn try_from(value: &rusqlite::Row<'_>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            request_date: NaiveDate::from_str(value.get::<_, String>(0)?.as_str()).unwrap(),
+            request_description: value.get(1)?,
+            worker: value.get(2)?,
+            work_date: NaiveDate::from_str(value.get::<_, String>(3)?.as_str()).unwrap(),
+            work_description: value.get(4)?,
+            points_used: value.get(5)?,
+            cumulative_points_used: value.get(6)?,
+        })
+    }
+}
+
+impl fmt::Display for CumulativeUsage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(self).unwrap())
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ContractUsage {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub total_points: u32,
+    pub cumulative_usage: Vec<CumulativeUsage>,
+}
+
+impl fmt::Display for ContractUsage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(self).unwrap())
+    }
+}
+
 impl TryFrom<&rusqlite::Row<'_>> for Customer {
     type Error = rusqlite::Error;
 
@@ -442,6 +489,50 @@ impl DataStore {
 
         Ok(rows)
     }
+
+    pub fn usage(&self, contract_id: u32) -> Result<ContractUsage, Error> {
+        let contract = self.get_contract(contract_id)?;
+
+        let mut stmt = self.conn.prepare(
+            "
+            SELECT
+                request.request_date,
+                request.description,
+                work.worker,
+                work.work_date,
+                work.description,
+                work.points_used,
+                SUM(work.points_used)
+                    OVER (
+                        PARTITION BY contract.id
+                        ORDER BY request.request_date, work.work_date
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS cumulative_points_used
+            FROM
+                work
+                INNER JOIN request ON work.request_id = request.id
+                INNER JOIN contract ON request.contract_id = contract.id
+            WHERE
+                contract.id = :id
+                AND request.request_date BETWEEN contract.start_date AND contract.end_date
+            ",
+        )?;
+
+        let rows = stmt.query_map([contract_id], |r| CumulativeUsage::try_from(r))?;
+        let mut results = Vec::new();
+        for r in rows {
+            results.push(r?);
+        }
+
+        let contract_usage = ContractUsage {
+            start_date: contract.start_date,
+            end_date: contract.end_date,
+            total_points: contract.total_points,
+            cumulative_usage: results,
+        };
+
+        Ok(contract_usage)
+    }
 }
 
 #[cfg(test)]
@@ -537,5 +628,34 @@ mod tests {
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
             work_entry.work_date
         );
+    }
+
+    #[test]
+    fn test_cumulative_usage() {
+        let ds = in_memory_datastore();
+        ds.add_contract(
+            1,
+            &"2025-01-01".parse().unwrap(),
+            &"2025-12-31".parse().unwrap(),
+            12,
+        )
+        .unwrap();
+        ds.add_customer("customer1").unwrap();
+        ds.add_request(1, "req1", &"2025-01-01".parse().unwrap())
+            .unwrap();
+        ds.add_request(1, "req2", &"2025-12-31".parse().unwrap())
+            .unwrap();
+        ds.add_work(1, "alice", "work1", 1, &"2025-01-01".parse().unwrap())
+            .unwrap();
+        ds.add_work(1, "alice", "work1-2", 2, &"2025-01-10".parse().unwrap())
+            .unwrap();
+        ds.add_work(2, "alice", "work2", 3, &"2025-12-31".parse().unwrap())
+            .unwrap();
+        let v = ds.usage(1).unwrap();
+        let v = v.cumulative_usage;
+        assert_eq!(v.len(), 3);
+        assert_eq!(v[0].cumulative_points_used, 1);
+        assert_eq!(v[1].cumulative_points_used, 3);
+        assert_eq!(v[2].cumulative_points_used, 6);
     }
 }
