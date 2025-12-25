@@ -515,7 +515,7 @@ impl DataStore {
             WHERE
                 contract.id = :id
                 AND request.request_date BETWEEN contract.start_date and contract.end_date
-                AND request.request_date <= :date
+                AND work.work_date <= :date
             ",
         )?;
 
