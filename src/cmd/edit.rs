@@ -1,7 +1,5 @@
 use clap::{Args, Parser, Subcommand};
 use maint::DataStore;
-use serde::{Deserialize, Serialize};
-
 #[derive(Parser)]
 pub struct Cmd {
     #[command(subcommand)]
@@ -42,11 +40,6 @@ pub struct Request {
 pub struct Work {
     /// ID of the work to edit
     pub id: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct EditCustomer<'a> {
-    name: &'a str,
 }
 
 impl Cmd {
