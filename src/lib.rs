@@ -509,9 +509,9 @@ impl DataStore {
                         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                     ) AS cumulative_points_used
             FROM
-                work
-                INNER JOIN request ON work.request_id = request.id
-                INNER JOIN contract ON request.contract_id = contract.id
+                contract
+                INNER JOIN request ON contract.id = request.contract_id
+                INNER JOIN work ON request.id = work.request_id
             WHERE
                 contract.id = :id
                 AND request.request_date BETWEEN contract.start_date and contract.end_date
