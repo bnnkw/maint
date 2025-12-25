@@ -5,6 +5,7 @@ mod edit;
 mod list;
 mod rm;
 mod show;
+mod usage;
 
 #[derive(Parser)]
 pub struct Cli {
@@ -20,6 +21,10 @@ impl Cli {
             Command::List(cmd) => cmd.run(ds),
             Command::Show(cmd) => cmd.run(ds),
             Command::Edit(cmd) => cmd.run(ds),
+            Command::Usage(cmd) => {
+                println!("{}", ds.usage(cmd.contract_id, cmd.date)?);
+                Ok(())
+            }
         }?;
 
         Ok(())
@@ -33,6 +38,7 @@ pub enum Command {
     List(list::Cmd),
     Show(show::Cmd),
     Edit(edit::Cmd),
+    Usage(usage::Usage),
 }
 
 #[derive(Args)]

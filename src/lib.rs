@@ -3,7 +3,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use chrono::NaiveDate;
-use rusqlite::Connection;
+use rusqlite::{Connection, named_params};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -490,7 +490,7 @@ impl DataStore {
         Ok(rows)
     }
 
-    pub fn usage(&self, contract_id: u32) -> Result<ContractUsage, Error> {
+    pub fn usage(&self, contract_id: u32, date: NaiveDate) -> Result<ContractUsage, Error> {
         let contract = self.get_contract(contract_id)?;
 
         let mut stmt = self.conn.prepare(
@@ -514,11 +514,15 @@ impl DataStore {
                 INNER JOIN contract ON request.contract_id = contract.id
             WHERE
                 contract.id = :id
-                AND request.request_date BETWEEN contract.start_date AND contract.end_date
+                AND request.request_date BETWEEN contract.start_date and contract.end_date
+                AND request.request_date <= :date
             ",
         )?;
 
-        let rows = stmt.query_map([contract_id], |r| CumulativeUsage::try_from(r))?;
+        let rows = stmt.query_map(
+            named_params! {":id": contract_id, ":date": date.to_string() },
+            |r| CumulativeUsage::try_from(r),
+        )?;
         let mut results = Vec::new();
         for r in rows {
             results.push(r?);
@@ -645,13 +649,17 @@ mod tests {
             .unwrap();
         ds.add_request(1, "req2", &"2025-12-31".parse().unwrap())
             .unwrap();
+        ds.add_request(1, "req3", &"2026-12-31".parse().unwrap())
+            .unwrap();
         ds.add_work(1, "alice", "work1", 1, &"2025-01-01".parse().unwrap())
             .unwrap();
         ds.add_work(1, "alice", "work1-2", 2, &"2025-01-10".parse().unwrap())
             .unwrap();
         ds.add_work(2, "alice", "work2", 3, &"2025-12-31".parse().unwrap())
             .unwrap();
-        let v = ds.usage(1).unwrap();
+        ds.add_work(3, "alice", "work3", 1, &"2026-12-31".parse().unwrap())
+            .unwrap();
+        let v = ds.usage(1, "2025-12-31".parse().unwrap()).unwrap();
         let v = v.cumulative_usage;
         assert_eq!(v.len(), 3);
         assert_eq!(v[0].cumulative_points_used, 1);

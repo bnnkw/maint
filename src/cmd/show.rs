@@ -25,9 +25,6 @@ pub struct Customer {
 pub struct Contract {
     /// ID of the contract to show
     pub id: u32,
-
-    #[arg(short, long)]
-    usage: bool,
 }
 
 #[derive(Args)]
@@ -47,11 +44,7 @@ impl Cmd {
         match &self.arg {
             Arg::Customer(arg) => println!("{:?}", ds.get_customer(arg.id)?),
             Arg::Contract(arg) => {
-                if arg.usage {
-                    println!("{}", ds.usage(arg.id)?);
-                } else {
-                    println!("{:?}", ds.get_contract(arg.id)?);
-                }
+                println!("{:?}", ds.get_contract(arg.id)?);
             }
             Arg::Request(arg) => println!("{:?}", ds.get_request(arg.id)?),
             Arg::Work(arg) => println!("{:?}", ds.get_work(arg.id)?),
